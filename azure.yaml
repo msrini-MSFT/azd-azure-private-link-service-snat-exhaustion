@@ -1,0 +1,3 @@
+name: azd-azure-private-link-service-snat-exhausion
+metadata:
+  template: azd-init@1.11.0

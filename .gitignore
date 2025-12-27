@@ -1,0 +1,10 @@
+.DS_Store
+.azure
+.env
+.vscode
+bin
+obj
+cmake-build-debug
+__pycache__
+*.pyc
+deploy.ps1
