@@ -8,11 +8,15 @@ param customData string = ''
 param backendPoolId string = ''
 param vmSize string = 'Standard_B1s'
 param publicIpId string = ''
+param nsgId string = ''
 
 resource nic 'Microsoft.Network/networkInterfaces@2021-02-01' = {
   name: '${vmName}-nic'
   location: location
   properties: {
+    networkSecurityGroup: nsgId != '' ? {
+      id: nsgId
+    } : null
     ipConfigurations: [
       {
         name: 'ipconfig1'

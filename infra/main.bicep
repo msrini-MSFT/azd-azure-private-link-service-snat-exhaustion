@@ -2,13 +2,23 @@ param location string = resourceGroup().location
 param environmentName string
 param adminUsername string = 'azureuser'
 @secure()
-param adminPassword string
+param adminPassword string = newGuid()
 
-module nsg 'modules/nsg.bicep' = {
-  name: 'nsg'
+// Client NSG
+module clientNsg 'modules/nsg.bicep' = {
+  name: 'clientNsg'
   params: {
     location: location
     nsgName: '${environmentName}-client-nsg'
+  }
+}
+
+// Server NSG
+module serverNsg 'modules/nsg.bicep' = {
+  name: 'serverNsg'
+  params: {
+    location: location
+    nsgName: '${environmentName}-server-nsg'
   }
 }
 
@@ -93,6 +103,7 @@ module serverVm 'modules/vm.bicep' = {
     backendPoolId: lb.outputs.backendPoolId
     customData: serverCustomData
     publicIpId: serverPip.id
+    nsgId: serverNsg.outputs.nsgId
   }
 }
 
@@ -122,7 +133,7 @@ module clientVnet 'modules/vnet.bicep' = {
       {
         name: 'vm-subnet'
         addressPrefix: '10.0.2.0/24'
-        networkSecurityGroupId: nsg.outputs.nsgId
+        networkSecurityGroupId: clientNsg.outputs.nsgId
       }
     ]
   }
@@ -285,6 +296,7 @@ module clientVm1 'modules/vm.bicep' = {
     adminPassword: adminPassword
     customData: clientCustomData
     publicIpId: clientPip.id
+    nsgId: clientNsg.outputs.nsgId
   }
 }
 
@@ -309,6 +321,7 @@ module clientVm2 'modules/vm.bicep' = {
     adminPassword: adminPassword
     customData: clientCustomData
     publicIpId: clientPip2.id
+    nsgId: clientNsg.outputs.nsgId
   }
 }
 
