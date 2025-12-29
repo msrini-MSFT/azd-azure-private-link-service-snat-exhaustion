@@ -19,22 +19,7 @@ resource kv 'Microsoft.KeyVault/vaults@2021-06-01-preview' = {
   }
 }
 
-resource usernameSecret 'Microsoft.KeyVault/vaults/secrets@2021-06-01-preview' = {
-  parent: kv
-  name: 'vmAdminUsername'
-  properties: {
-    value: adminUsername
-  }
-}
-
-resource passwordSecret 'Microsoft.KeyVault/vaults/secrets@2021-06-01-preview' = {
-  parent: kv
-  name: 'vmAdminPassword'
-  properties: {
-    value: adminPassword
-  }
-}
-
+// Client VM 1 credentials
 resource clientVm1UsernameSecret 'Microsoft.KeyVault/vaults/secrets@2021-06-01-preview' = {
   parent: kv
   name: 'clientVm1-username'
