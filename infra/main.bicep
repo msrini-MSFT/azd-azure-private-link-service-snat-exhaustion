@@ -18,6 +18,7 @@ module kv 'modules/keyvault.bicep' = {
     location: location
     vaultName: 'kv-${uniqueString(resourceGroup().id)}'
     tenantId: subscription().tenantId
+    adminUsername: adminUsername
     adminPassword: adminPassword
   }
 }
@@ -70,6 +71,17 @@ runcmd:
   - systemctl restart nginx
 '''
 
+resource serverPip 'Microsoft.Network/publicIPAddresses@2021-02-01' = {
+  name: '${environmentName}-server-vm-pip'
+  location: location
+  sku: {
+    name: 'Standard'
+  }
+  properties: {
+    publicIPAllocationMethod: 'Static'
+  }
+}
+
 module serverVm 'modules/vm.bicep' = {
   name: 'serverVm'
   params: {
@@ -80,6 +92,7 @@ module serverVm 'modules/vm.bicep' = {
     adminPassword: adminPassword
     backendPoolId: lb.outputs.backendPoolId
     customData: serverCustomData
+    publicIpId: serverPip.id
   }
 }
 
@@ -275,6 +288,17 @@ module clientVm1 'modules/vm.bicep' = {
   }
 }
 
+resource clientPip2 'Microsoft.Network/publicIPAddresses@2021-02-01' = {
+  name: '${environmentName}-client-vm-2-pip'
+  location: location
+  sku: {
+    name: 'Standard'
+  }
+  properties: {
+    publicIPAllocationMethod: 'Static'
+  }
+}
+
 module clientVm2 'modules/vm.bicep' = {
   name: 'clientVm2'
   params: {
@@ -284,7 +308,12 @@ module clientVm2 'modules/vm.bicep' = {
     adminUsername: adminUsername
     adminPassword: adminPassword
     customData: clientCustomData
+    publicIpId: clientPip2.id
   }
 }
 
 output keyVaultName string = kv.outputs.keyVaultName
+output clientVm1PublicIp string = clientPip.properties.ipAddress
+output clientVm2PublicIp string = clientPip2.properties.ipAddress
+output serverVmPublicIp string = serverPip.properties.ipAddress
+output adminUsername string = adminUsername
