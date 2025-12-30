@@ -38,29 +38,9 @@ The setup comprises two distinct virtual networks with no direct connectivity:
 
 ## Getting Started
 
-### 1. Deploy Infrastructure
+For detailed deployment instructions, see the [Lab Instructions](./instructions.md).
 
-```bash
-# Clone the repository
-git clone https://github.com/msrini-MSFT/azd-azure-private-link-service-snat-exhaustion.git
-cd azd-azure-private-link-service-snat-exhaustion
-
-# Deploy using Bicep
-cd infra
-az group create --name rg-pls-demo --location eastus2
-
-# Generate a secure password
-SECURE_PASSWORD=$(openssl rand -base64 32)
-
-# Deploy the infrastructure
-az deployment group create \
-  --resource-group rg-pls-demo \
-  --template-file main.bicep \
-  --parameters main.bicepparam \
-  --parameters adminPassword="$SECURE_PASSWORD"
-```
-
-### 2. Retrieve Credentials
+### Retrieve Credentials
 
 ```bash
 # Get Key Vault name from deployment outputs
@@ -79,7 +59,7 @@ echo "Password: $PASSWORD"
 
 > **Note**: You must have the "Key Vault Secret User" role to access secrets.
 
-### 3. Test Connectivity
+### Test Connectivity
 
 ```bash
 # Get the public IP of Client VM 1
@@ -97,6 +77,8 @@ curl http://10.0.1.4
 ```
 
 If the setup is correct, you should receive an NGINX response.
+
+![Run curl screenshot](./images/run-curl-screenshot.png)
 
 ## Testing SNAT Port Exhaustion
 
@@ -128,6 +110,8 @@ nohup python3 /home/azureuser/exhaust_snat.py 10.0.1.4 80 60000 > /tmp/exhaust.l
 ss -tn dst 10.0.1.4 | grep ESTAB | wc -l
 ```
 
+![Run script screenshot](./images/run-script-screenshot.png)
+
 ### Monitoring SNAT Port Usage
 
 1. Navigate to Azure Portal
@@ -138,7 +122,7 @@ ss -tn dst 10.0.1.4 | grep ESTAB | wc -l
 
 This visualizes SNAT port consumption per NAT IP, helping identify exhaustion patterns.
 
-![SNAT Metrics](./images/snat-metrics.png)
+![SNAT Metrics](./images/metrics-screenshot.png)
 
 ## Repository Structure
 
@@ -178,13 +162,6 @@ This visualizes SNAT port consumption per NAT IP, helping identify exhaustion pa
 - Increase connection count in script
 - Run script on multiple client VMs simultaneously
 - Verify NAT IP configuration on PLS
-
-## Cleanup
-
-```bash
-# Delete the resource group
-az group delete --name rg-pls-demo --yes --no-wait
-```
 
 ## Contributing
 
