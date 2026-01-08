@@ -3,7 +3,11 @@ param vaultName string
 param tenantId string
 param adminUsername string
 @secure()
-param adminPassword string
+param serverVmPassword string
+@secure()
+param clientVm1Password string
+@secure()
+param clientVm2Password string
 param principalId string = ''
 param tags object = {}
 
@@ -49,7 +53,7 @@ resource clientVm1PasswordSecret 'Microsoft.KeyVault/vaults/secrets@2021-06-01-p
   parent: kv
   name: 'clientVm1-password'
   properties: {
-    value: adminPassword
+    value: clientVm1Password
   }
 }
 
@@ -65,7 +69,7 @@ resource clientVm2PasswordSecret 'Microsoft.KeyVault/vaults/secrets@2021-06-01-p
   parent: kv
   name: 'clientVm2-password'
   properties: {
-    value: adminPassword
+    value: clientVm2Password
   }
 }
 
@@ -81,7 +85,7 @@ resource serverVmPasswordSecret 'Microsoft.KeyVault/vaults/secrets@2021-06-01-pr
   parent: kv
   name: 'serverVm-password'
   properties: {
-    value: adminPassword
+    value: serverVmPassword
   }
 }
 

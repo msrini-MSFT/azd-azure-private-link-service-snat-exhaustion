@@ -1,9 +1,15 @@
 param location string = resourceGroup().location
 param environmentName string
 param adminUsername string = 'azureuser'
-@secure()
-param adminPassword string = newGuid()
 param principalId string = ''
+
+// Generate unique passwords for each VM using parameter defaults
+@secure()
+param serverVmPassword string = newGuid()
+@secure()
+param clientVm1Password string = newGuid()
+@secure()
+param clientVm2Password string = newGuid()
 
 // Tags that should be applied to all resources
 var tags = {
@@ -38,7 +44,9 @@ module kv 'modules/keyvault.bicep' = {
     vaultName: 'kv-${uniqueString(resourceGroup().id)}'
     tenantId: subscription().tenantId
     adminUsername: adminUsername
-    adminPassword: adminPassword
+    serverVmPassword: serverVmPassword
+    clientVm1Password: clientVm1Password
+    clientVm2Password: clientVm2Password
     principalId: principalId
     tags: tags
   }
@@ -114,7 +122,7 @@ module serverVm 'modules/vm.bicep' = {
     vmName: '${environmentName}-server-vm'
     subnetId: providerVnet.outputs.subnetIds[0].id
     adminUsername: adminUsername
-    adminPassword: adminPassword
+    adminPassword: serverVmPassword
     backendPoolId: lb.outputs.backendPoolId
     customData: serverCustomData
     publicIpId: serverPip.id
@@ -316,7 +324,7 @@ module clientVm1 'modules/vm.bicep' = {
     vmName: '${environmentName}-client-vm-1'
     subnetId: clientVnet.outputs.subnetIds[1].id
     adminUsername: adminUsername
-    adminPassword: adminPassword
+    adminPassword: clientVm1Password
     customData: clientCustomData
     publicIpId: clientPip.id
     nsgId: clientNsg.outputs.nsgId
@@ -343,7 +351,7 @@ module clientVm2 'modules/vm.bicep' = {
     vmName: '${environmentName}-client-vm-2'
     subnetId: clientVnet.outputs.subnetIds[1].id
     adminUsername: adminUsername
-    adminPassword: adminPassword
+    adminPassword: clientVm2Password
     customData: clientCustomData
     publicIpId: clientPip2.id
     nsgId: clientNsg.outputs.nsgId
