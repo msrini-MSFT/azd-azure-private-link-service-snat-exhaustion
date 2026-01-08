@@ -25,7 +25,7 @@ resource natGateway 'Microsoft.Network/natGateways@2021-02-01' = {
   properties: {
     publicIpAddresses: [
       {
-        id: publicIp.id
+        id: natGatewayPublicIp.id
       }
     ]
   }
