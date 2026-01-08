@@ -2,10 +2,12 @@ param location string
 param vnetName string
 param addressPrefix string
 param subnets array
+param tags object = {}
 
 resource vnet 'Microsoft.Network/virtualNetworks@2021-02-01' = {
   name: vnetName
   location: location
+  tags: tags
   properties: {
     addressSpace: {
       addressPrefixes: [

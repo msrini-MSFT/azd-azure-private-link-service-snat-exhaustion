@@ -2,10 +2,12 @@ param location string
 param plsName string
 param lbFrontendIpConfigId string
 param subnetId string
+param tags object = {}
 
 resource pls 'Microsoft.Network/privateLinkServices@2021-02-01' = {
   name: plsName
   location: location
+  tags: tags
   properties: {
     loadBalancerFrontendIpConfigurations: [
       {

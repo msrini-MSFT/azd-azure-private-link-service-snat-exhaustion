@@ -1,0 +1,79 @@
+# Azure Private Link Service - SNAT Port Exhaustion Testing
+
+## Project Objective
+Create a PLS (Private Link Service), Standard Load Balancer, and backend VM with application loaded.
+
+Create multiple Private Endpoints (PE) and link them with the PLS.
+
+Create client VMs in the PE end and run scripts which exhaust the SNAT ports at the PLS end.
+
+Goal: View the SNAT port exhaustion metrics at the PLS end and demonstrate NAT IP scaling.
+
+## Reference Documentation
+https://microsoft-my.sharepoint.com/:w:/p/msrini/IQBd0HUmQ3sTTrbwcWMWrLIXAYnFAcE3SU1kIt4F0L7j5bw?e=IFv9rn
+
+## Implementation Requirements
+
+### Security & Compliance
+- **Tags**: All resources must include SFI bypass tags:
+  - `azd-env-name`: environmentName
+  - `securityControl`: 'ignore'
+
+- **Key Vault RBAC**: 
+  - Enable RBAC authorization on Key Vault
+  - Assign deployment user "Key Vault Secrets User" role (GUID: 4633458b-17de-408a-b874-0445c86b69e6)
+  - Automatically grant access to the user deploying the infrastructure
+  - Store all VM credentials securely (3 VMs × 2 credentials = 6 secrets total)
+
+- **Principal ID Parameter**:
+  - Add `principalId` parameter to main.bicep
+  - Get user ID from: `az ad signed-in-user show --query id -o tsv`
+  - Pass to Key Vault module for RBAC role assignment
+
+### Architecture Components
+
+**Provider VNET** (172.16.0.0/16):
+- Private Link Service with 4 NAT IP addresses
+- Standard Load Balancer (internal)
+- Backend: Ubuntu 18.04 VM running NGINX
+- NAT Gateway for outbound connectivity
+- Server subnet with NSG
+
+**Client VNET** (10.0.0.0/16):
+- 4 Private Endpoints connecting to PLS
+- 2 Client VMs (Ubuntu 18.04) with:
+  - Python 3 pre-installed
+  - SNAT exhaustion scripts (exhaust_snat.py)
+  - System tuning for high connection counts
+  - Public IP addresses for management access
+  - Client subnet with NSG
+
+### Testing & Monitoring
+- SNAT exhaustion script supports multiple target IPs
+- Configurable connection count per IP (default: 15,000)
+- Monitor via Azure Portal: PLS → Metrics → NAT port usage (split by NAT IP)
+- Target: Exhaust 64K ports per NAT IP, observe failover to secondary NAT IPs
+
+### Deployment Method
+- Infrastructure as Code: Bicep templates
+- Modular design with reusable components
+- Auto-generated secure passwords (no hardcoded credentials)
+- Parameter file for environment-specific values
+
+## Reference Examples
+- Parameter file pattern: https://github.com/rob-foulkrod/TollBooth/blob/main/infra/main.parameters.json
+- RBAC for Key Vault: https://github.com/rob-foulkrod/TollBooth/blob/main/infra/resources.bicep
+
+## GitHub Repository
+https://github.com/msrini-MSFT/azd-azure-private-link-service-snat-exhaustion
+
+## Status
+✅ Infrastructure deployment completed  
+✅ Security hardening (RBAC, NSGs, auto-generated passwords)  
+✅ Documentation added (README.md, instructions.md)  
+✅ Screenshots and diagrams added  
+✅ SFI bypass tags implementation  
+✅ Key Vault RBAC for deployment user
+
+
+ 

@@ -3,6 +3,13 @@ param environmentName string
 param adminUsername string = 'azureuser'
 @secure()
 param adminPassword string = newGuid()
+param principalId string = ''
+
+// Tags that should be applied to all resources
+var tags = {
+  'azd-env-name': environmentName
+  'securityControl': 'ignore'
+}
 
 // Client NSG
 module clientNsg 'modules/nsg.bicep' = {
@@ -10,6 +17,7 @@ module clientNsg 'modules/nsg.bicep' = {
   params: {
     location: location
     nsgName: '${environmentName}-client-nsg'
+    tags: tags
   }
 }
 
@@ -19,6 +27,7 @@ module serverNsg 'modules/nsg.bicep' = {
   params: {
     location: location
     nsgName: '${environmentName}-server-nsg'
+    tags: tags
   }
 }
 
@@ -30,6 +39,8 @@ module kv 'modules/keyvault.bicep' = {
     tenantId: subscription().tenantId
     adminUsername: adminUsername
     adminPassword: adminPassword
+    principalId: principalId
+    tags: tags
   }
 }
 
@@ -40,6 +51,7 @@ module natGateway 'modules/natgateway.bicep' = {
     location: location
     natGatewayName: '${environmentName}-provider-natgw'
     publicIpName: '${environmentName}-provider-natgw-pip'
+    tags: tags
   }
 }
 
@@ -57,6 +69,7 @@ module providerVnet 'modules/vnet.bicep' = {
         privateLinkServiceNetworkPolicies: 'Disabled'
       }
     ]
+    tags: tags
   }
 }
 
@@ -66,6 +79,7 @@ module lb 'modules/loadbalancer.bicep' = {
     location: location
     lbName: '${environmentName}-provider-lb'
     subnetId: providerVnet.outputs.subnetIds[0].id
+    tags: tags
   }
 }
 
@@ -84,6 +98,7 @@ runcmd:
 resource serverPip 'Microsoft.Network/publicIPAddresses@2021-02-01' = {
   name: '${environmentName}-server-vm-pip'
   location: location
+  tags: tags
   sku: {
     name: 'Standard'
   }
@@ -104,6 +119,7 @@ module serverVm 'modules/vm.bicep' = {
     customData: serverCustomData
     publicIpId: serverPip.id
     nsgId: serverNsg.outputs.nsgId
+    tags: tags
   }
 }
 
@@ -114,6 +130,7 @@ module pls 'modules/privatelinkservice.bicep' = {
     plsName: '${environmentName}-provider-pls'
     lbFrontendIpConfigId: lb.outputs.frontendIpConfigId
     subnetId: providerVnet.outputs.subnetIds[0].id
+    tags: tags
   }
 }
 
@@ -136,6 +153,7 @@ module clientVnet 'modules/vnet.bicep' = {
         networkSecurityGroupId: clientNsg.outputs.nsgId
       }
     ]
+    tags: tags
   }
 }
 
@@ -146,6 +164,7 @@ module pe1 'modules/privateendpoint.bicep' = {
     peName: '${environmentName}-client-pe-1'
     subnetId: clientVnet.outputs.subnetIds[0].id
     plsId: pls.outputs.plsId
+    tags: tags
   }
 }
 
@@ -156,6 +175,7 @@ module pe2 'modules/privateendpoint.bicep' = {
     peName: '${environmentName}-client-pe-2'
     subnetId: clientVnet.outputs.subnetIds[0].id
     plsId: pls.outputs.plsId
+    tags: tags
   }
 }
 
@@ -166,6 +186,7 @@ module pe3 'modules/privateendpoint.bicep' = {
     peName: '${environmentName}-client-pe-3'
     subnetId: clientVnet.outputs.subnetIds[0].id
     plsId: pls.outputs.plsId
+    tags: tags
   }
 }
 
@@ -176,12 +197,14 @@ module pe4 'modules/privateendpoint.bicep' = {
     peName: '${environmentName}-client-pe-4'
     subnetId: clientVnet.outputs.subnetIds[0].id
     plsId: pls.outputs.plsId
+    tags: tags
   }
 }
 
 resource clientPip 'Microsoft.Network/publicIPAddresses@2021-02-01' = {
   name: '${environmentName}-client-vm-1-pip'
   location: location
+  tags: tags
   sku: {
     name: 'Standard'
   }
@@ -297,12 +320,14 @@ module clientVm1 'modules/vm.bicep' = {
     customData: clientCustomData
     publicIpId: clientPip.id
     nsgId: clientNsg.outputs.nsgId
+    tags: tags
   }
 }
 
 resource clientPip2 'Microsoft.Network/publicIPAddresses@2021-02-01' = {
   name: '${environmentName}-client-vm-2-pip'
   location: location
+  tags: tags
   sku: {
     name: 'Standard'
   }
@@ -322,6 +347,7 @@ module clientVm2 'modules/vm.bicep' = {
     customData: clientCustomData
     publicIpId: clientPip2.id
     nsgId: clientNsg.outputs.nsgId
+    tags: tags
   }
 }
 

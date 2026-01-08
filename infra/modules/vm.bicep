@@ -9,10 +9,12 @@ param backendPoolId string = ''
 param vmSize string = 'Standard_B1s'
 param publicIpId string = ''
 param nsgId string = ''
+param tags object = {}
 
 resource nic 'Microsoft.Network/networkInterfaces@2021-02-01' = {
   name: '${vmName}-nic'
   location: location
+  tags: tags
   properties: {
     networkSecurityGroup: nsgId != '' ? {
       id: nsgId
@@ -42,6 +44,7 @@ resource nic 'Microsoft.Network/networkInterfaces@2021-02-01' = {
 resource vm 'Microsoft.Compute/virtualMachines@2021-03-01' = {
   name: vmName
   location: location
+  tags: tags
   properties: {
     hardwareProfile: {
       vmSize: vmSize

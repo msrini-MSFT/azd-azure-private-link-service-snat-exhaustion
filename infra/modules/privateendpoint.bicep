@@ -2,10 +2,12 @@ param location string
 param peName string
 param subnetId string
 param plsId string
+param tags object = {}
 
 resource pe 'Microsoft.Network/privateEndpoints@2021-02-01' = {
   name: peName
   location: location
+  tags: tags
   properties: {
     subnet: {
       id: subnetId

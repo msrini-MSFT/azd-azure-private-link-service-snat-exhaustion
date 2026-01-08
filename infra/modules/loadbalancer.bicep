@@ -1,10 +1,12 @@
 param location string
 param lbName string
 param subnetId string
+param tags object = {}
 
 resource lb 'Microsoft.Network/loadBalancers@2021-02-01' = {
   name: lbName
   location: location
+  tags: tags
   sku: {
     name: 'Standard'
   }

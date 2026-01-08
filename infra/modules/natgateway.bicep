@@ -1,10 +1,12 @@
 param location string
 param natGatewayName string
 param publicIpName string
+param tags object = {}
 
-resource publicIp 'Microsoft.Network/publicIPAddresses@2021-02-01' = {
+resource natGatewayPublicIp 'Microsoft.Network/publicIPAddresses@2021-02-01' = {
   name: publicIpName
   location: location
+  tags: tags
   sku: {
     name: 'Standard'
   }
@@ -16,6 +18,7 @@ resource publicIp 'Microsoft.Network/publicIPAddresses@2021-02-01' = {
 resource natGateway 'Microsoft.Network/natGateways@2021-02-01' = {
   name: natGatewayName
   location: location
+  tags: tags
   sku: {
     name: 'Standard'
   }
