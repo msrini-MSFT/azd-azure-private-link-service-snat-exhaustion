@@ -2,11 +2,8 @@ param location string
 param vaultName string
 param tenantId string
 param adminUsername string
-@secure()
 param serverVmPassword string
-@secure()
 param clientVm1Password string
-@secure()
 param clientVm2Password string
 param principalId string = ''
 param tags object = {}

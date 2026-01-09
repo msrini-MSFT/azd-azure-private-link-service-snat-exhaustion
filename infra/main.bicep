@@ -3,13 +3,11 @@ param environmentName string
 param adminUsername string = 'azureuser'
 param principalId string = ''
 
-// Generate unique passwords for each VM using parameter defaults
-@secure()
-param serverVmPassword string = newGuid()
-@secure()
-param clientVm1Password string = newGuid()
-@secure()
-param clientVm2Password string = newGuid()
+// Generate unique passwords for each VM at deployment time
+// These will be used to create VMs and stored in Key Vault
+var serverVmPassword = uniqueString(resourceGroup().id, 'serverVmPassword', deployment().name)
+var clientVm1Password = uniqueString(resourceGroup().id, 'clientVm1Password', deployment().name)
+var clientVm2Password = uniqueString(resourceGroup().id, 'clientVm2Password', deployment().name)
 
 // Tags that should be applied to all resources
 var tags = {
