@@ -2,22 +2,21 @@
 
 ## Lab Overview
 
-In this lab, you will deploy and test Azure Private Link Service (PLS) to understand SNAT port exhaustion behavior and NAT IP scaling.
+In this lab, you will test Azure Private Link Service (PLS) to understand SNAT port exhaustion behavior and NAT IP scaling.
 
-**Duration**: 60-90 minutes
+**Duration**: 45-60 minutes
 
 ## Learning Objectives
 
 By the end of this lab, you will be able to:
-- Deploy Azure Private Link Service infrastructure
-- Configure Private Endpoints to access PLS
+- Access client VMs with Private Endpoint connectivity
 - Test connectivity through Private Link
 - Simulate and monitor SNAT port exhaustion
 - Understand NAT IP scaling strategies
 
 ## Architecture
 
-You will deploy two virtual networks:
+The deployment includes two virtual networks:
 
 - **Client VNET**: Contains client VMs and Private Endpoints
 - **Provider VNET**: Contains PLS, Load Balancer, and server VM
@@ -26,7 +25,8 @@ There is no direct connectivity between these VNETs—all communication flows th
 
 ## Prerequisites
 
-- Active Azure subscription
+- Infrastructure already deployed (via Bicep or Terraform)
+- Active Azure subscription with access to the deployed resources
 - Azure CLI installed and configured
 - SSH client (built-in on Linux/Mac, or use PuTTY on Windows)
 - Basic understanding of:
@@ -36,77 +36,7 @@ There is no direct connectivity between these VNETs—all communication flows th
 
 ---
 
-## Exercise 1: Deploy the Infrastructure
-
-### Task 1: Clone the Repository
-
-1. Open a terminal or command prompt
-
-2. Clone the repository:
-   ```bash
-   git clone https://github.com/msrini-MSFT/azd-azure-private-link-service-snat-exhaustion.git
-   cd azd-azure-private-link-service-snat-exhaustion
-   ```
-
-### Task 2: Create Resource Group
-
-1. Log in to Azure CLI:
-   ```bash
-   az login
-   ```
-
-2. Set your subscription (if you have multiple):
-   ```bash
-   az account set --subscription "<your-subscription-id>"
-   ```
-
-3. Create the resource group:
-   ```bash
-   az group create \
-     --name rg-pls-lab \
-     --location eastus2
-   ```
-
-### Task 3: Deploy Bicep Template
-
-1. Generate a secure password:
-   ```bash
-   # On Linux/Mac
-   SECURE_PASSWORD=$(openssl rand -base64 32)
-   
-   # On Windows PowerShell
-   $SECURE_PASSWORD = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 32 | % {[char]$_})
-   ```
-
-2. Navigate to the infrastructure directory:
-   ```bash
-   cd infra
-   ```
-
-3. Deploy the Bicep template:
-   ```bash
-   az deployment group create \
-     --resource-group rg-pls-lab \
-     --template-file main.bicep \
-     --parameters main.bicepparam \
-     --parameters adminPassword="$SECURE_PASSWORD"
-   ```
-
-   > **Note**: Deployment takes approximately 10-15 minutes.
-
-4. Verify deployment completed successfully:
-   ```bash
-   az deployment group show \
-     --resource-group rg-pls-lab \
-     --name main \
-     --query "properties.provisioningState"
-   ```
-
-   Expected output: `"Succeeded"`
-
----
-
-## Exercise 2: Access Client Virtual Machines
+## Exercise 1: Access Client Virtual Machines
 
 ### Task 1: Configure Key Vault Access
 
@@ -166,7 +96,7 @@ echo "Client VM IP: $CLIENT_VM_IP"
 
 ---
 
-## Exercise 3: Test Private Link Connectivity
+## Exercise 2: Test Private Link Connectivity
 
 ### Task 1: Connect to Client VM
 
@@ -217,7 +147,7 @@ curl http://10.0.1.7
 
 ---
 
-## Exercise 4: Understand SNAT Port Exhaustion
+## Exercise 3: Understand SNAT Port Exhaustion
 
 ### Task 1: Review SNAT Concepts
 
@@ -245,7 +175,7 @@ curl http://10.0.1.7
 
 ---
 
-## Exercise 5: Simulate SNAT Port Exhaustion
+## Exercise 4: Simulate SNAT Port Exhaustion
 
 ### Task 1: Examine the Multi-PE Exhaustion Script
 
@@ -391,7 +321,7 @@ To achieve 100% SNAT exhaustion (128K connections):
 
 ---
 
-## Exercise 6: Monitor SNAT Port Usage
+## Exercise 5: Monitor SNAT Port Usage
 
 ### Task 1: View Metrics in Azure Portal
 
@@ -469,7 +399,7 @@ When SNAT ports are fully exhausted:
 
 ---
 
-## Exercise 7: Observe NAT IP Failover
+## Exercise 6: Observe NAT IP Failover
 
 ### Task 1: Monitor Active NAT IPs
 
@@ -515,7 +445,7 @@ You'll see connections coming from the NAT IP addresses, not the client VMs' act
 
 ---
 
-## Exercise 8: Clean Up Resources
+## Exercise 7: Clean Up Resources
 
 ### Task 1: Stop Exhaustion Scripts
 
@@ -649,16 +579,3 @@ Expected: `ResourceGroupNotFound` error.
 1. Assign "Key Vault Secrets User" role in Azure Portal
 2. Verify subscription: `az account show`
 3. Re-authenticate: `az login`
-
----
-
-## Lab Summary
-
-Congratulations! You have successfully:
-✅ Deployed Azure Private Link Service infrastructure  
-✅ Connected to VMs using Private Endpoints  
-✅ Simulated SNAT port exhaustion  
-✅ Monitored NAT IP usage patterns  
-✅ Understood PLS scaling strategies  
-
-You now have hands-on experience with Azure Private Link Service and understand how to design for SNAT port capacity planning.
