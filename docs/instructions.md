@@ -247,56 +247,107 @@ curl http://10.0.1.7
 
 ## Exercise 5: Simulate SNAT Port Exhaustion
 
-### Task 1: Examine the Exhaustion Script
+### Task 1: Examine the Multi-PE Exhaustion Script
 
 While connected to the client VM:
 
 ```bash
-# View the script
-cat /home/azureuser/exhaust_snat.py
+# View the enhanced multi-PE script
+cat /home/azureuser/exhaust_snat_multi_pe.py | head -30
 
 # Check if Python 3 is available
 python3 --version
 ```
 
-The script uses socket programming to create and maintain persistent TCP connections.
+**Key Features**:
+- Distributes connections across all 4 Private Endpoints simultaneously
+- Uses sequential round-robin batching for stability
+- Real-time progress tracking per PE
+- Automatic SNAT usage calculations
 
 ### Task 2: Run Small-Scale Test
 
 Start with a smaller number of connections to verify functionality:
 
 ```bash
-# Test with 1,000 connections
-python3 /home/azureuser/exhaust_snat.py 10.0.1.4 80 1000
+# Test with 2K connections per PE = 8K total
+python3 ~/exhaust_snat_multi_pe.py 2000
 ```
 
-In another terminal (SSH session), monitor active connections:
+**Expected Output**:
+```
+🚀 ENHANCED SNAT PORT EXHAUSTION TEST
+Target Endpoints: 4
+  PE1: 10.0.1.4
+  PE2: 10.0.1.5
+  PE3: 10.0.1.6
+  PE4: 10.0.1.7
 
-```bash
-# Count established connections
-ss -tn dst 10.0.1.4 | grep ESTAB | wc -l
+Connections per PE: 2,000
+Total target: 8,000 connections
+
+[PE1]  2000/2000 (100.0%) 10.0.1.4
+[PE2]  2000/2000 (100.0%) 10.0.1.5
+[PE3]  2000/2000 (100.0%) 10.0.1.6
+[PE4]  2000/2000 (100.0%) 10.0.1.7
+
+✓ Holding connections open. Press Ctrl+C to stop...
 ```
 
-### Task 3: Scale Up to Trigger Exhaustion
-
-Now run with a larger connection count to approach SNAT limits:
+In another SSH session, monitor active connections:
 
 ```bash
-# Run in background with 60,000 connections
-nohup python3 /home/azureuser/exhaust_snat.py 10.0.1.4 80 60000 > /tmp/exhaust.log 2>&1 &
+# Count total established connections
+ss -tn state established | grep -E '10.0.1.[4-7]:80' | wc -l
+
+# Count connections per PE
+for ip in 10.0.1.4 10.0.1.5 10.0.1.6 10.0.1.7; do
+  count=$(ss -tn dst $ip | grep ESTAB | wc -l)
+  echo "PE $ip: $count connections"
+done
+```
+
+### Task 3: Scale Up to Trigger SNAT Exhaustion
+
+Now run with the default configuration to achieve 50% SNAT exhaustion:
+
+```bash
+# Run with 16K connections per PE = 64K total
+# This equals 50% SNAT usage with 2 NAT IPs (128K capacity)
+nohup python3 ~/exhaust_snat_multi_pe.py 16000 > ~/snat_test.log 2>&1 &
 
 # Get process ID
-ps aux | grep exhaust_snat.py | grep -v grep
+ps aux | grep exhaust_snat_multi_pe | grep -v grep
 
 # Monitor log output
-tail -f /tmp/exhaust.log
+tail -f ~/snat_test.log
 ```
 
-### Task 4: Run on Multiple Client VMs
+**What to Observe**:
+- Connections distributed evenly across all 4 PEs
+- Each PE receives ~16K connections
+- Total 64K connections = 50% of 128K SNAT capacity
+- Real-time progress updates every batch
 
-To fully exhaust SNAT ports, run the script on both client VMs:
+### Task 4: Monitor SNAT Metrics in Azure Portal
 
-1. SSH to Client VM 2:
+While the script is running:
+
+1. Open Azure Portal → Navigate to your Private Link Service
+2. Click **Metrics** in the left menu
+3. Add these metrics:
+   - **SNAT Connection Count**: Watch it climb to ~64K
+   - **Used SNAT Ports**: Should reach ~50% utilization
+   - **Bytes Processed**: Shows data throughput
+4. Set **Time range** to "Last 30 minutes" and **Granularity** to "1 minute"
+
+### Task 5: Run on Multiple Client VMs for Full Exhaustion
+
+To achieve 100% SNAT exhaustion (128K connections):
+
+1. Keep the script running on Client VM 1 (already at 64K)
+
+2. SSH to Client VM 2:
    ```bash
    # Get credentials for VM2 from Key Vault
    USERNAME2=$(az keyvault secret show \
@@ -320,10 +371,23 @@ To fully exhaust SNAT ports, run the script on both client VMs:
    ssh $USERNAME2@$CLIENT_VM2_IP
    ```
 
-2. Run the exhaustion script on VM2:
+3. Run the multi-PE script on VM2 with same parameters:
    ```bash
-   nohup python3 /home/azureuser/exhaust_snat.py 10.0.1.5 80 60000 > /tmp/exhaust.log 2>&1 &
+   # 16K per PE = 64K total on VM2
+   nohup python3 ~/exhaust_snat_multi_pe.py 16000 > ~/snat_test.log 2>&1 &
+   
+   # Monitor progress
+   tail -f ~/snat_test.log
    ```
+
+4. **Total Load**:
+   - Client VM1: 64K connections (16K per PE)
+   - Client VM2: 64K connections (16K per PE)
+   - **Combined: 128K connections = 100% SNAT exhaustion**
+
+5. Verify total connections in Azure Portal metrics:
+   - Navigate to PLS → Metrics → **SNAT Connection Count**
+   - Should show ~128K total active connections
 
 ---
 
@@ -338,35 +402,70 @@ To fully exhaust SNAT ports, run the script on both client VMs:
 3. In the left menu, select **Monitoring** → **Metrics**
 
 4. Configure the metric:
-   - Metric: **NAT port usage**
+   - Metric: **SNAT Connection Count**
    - Aggregation: **Max** or **Average**
    - Time range: **Last 30 minutes**
+   - Granularity: **1 minute**
 
-5. Click **Add filter** or **Apply splitting**:
+5. Add additional metrics (split chart):
+   - **Used SNAT Ports**: Shows port utilization
+   - **Allocated SNAT Ports**: Total available capacity
+   - **Bytes Processed**: Data throughput
+
+6. Click **Add filter** or **Apply splitting**:
    - Property: **Nat IP**
    - Values: Select all NAT IPs
-
-6. Observe the chart showing usage per NAT IP address
 
 ### Task 2: Analyze the Data
 
 Look for these patterns:
-- **Even distribution**: Connections spread across all NAT IPs
-- **Approaching limits**: Usage nearing 64,000 per NAT IP
-- **Exhaustion**: Flat-lining at 64K with connection failures
 
-### Task 3: Test Connection Failures (Optional)
+**With Single VM (64K connections)**:
+- **Connection Count**: ~64,000 active connections
+- **SNAT Port Usage**: ~50% utilization (64K of 128K)
+- **Distribution**: Even spread across 4 Private Endpoints
+- **Status**: Stable, no connection failures
 
-If SNAT exhaustion is reached:
+**With Two VMs (128K connections)**:
+- **Connection Count**: ~128,000 active connections
+- **SNAT Port Usage**: ~100% utilization (128K of 128K)
+- **Warning**: Approaching exhaustion threshold
+- **Risk**: New connections may fail
 
-1. From a third client, attempt to connect:
+**Signs of Exhaustion**:
+- Connection count flat-lining at capacity
+- New connection attempts failing
+- Increased latency or timeouts
+- Error messages in client logs
+
+### Task 3: Test Connection Behavior at Exhaustion
+
+When SNAT ports are fully exhausted:
+
+1. From your local machine (or a third VM), attempt to connect:
    ```bash
-   curl http://10.0.1.4 --connect-timeout 5
+   # This should timeout or fail if SNAT is exhausted
+   curl http://10.0.1.4 --connect-timeout 5 --max-time 10
    ```
 
-2. **Expected behavior**: Connection timeout or failure
+2. **Expected behavior at 100% exhaustion**: 
+   - Connection timeout after 5-10 seconds
+   - No response from backend
+   - Error: "Failed to connect" or "Connection timed out"
 
-3. **Why?**: All available SNAT ports are consumed
+3. **Why?**: All available SNAT ports are consumed by existing connections
+
+4. **Solution**: Stop one of the exhaustion scripts:
+   ```bash
+   # On one of the client VMs
+   pkill -f exhaust_snat_multi_pe.py
+   
+   # Wait 30 seconds for connections to close
+   sleep 30
+   
+   # Try curl again - should succeed
+   curl http://10.0.1.4
+   ```
 
 ---
 
