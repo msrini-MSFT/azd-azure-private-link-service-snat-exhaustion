@@ -5,9 +5,9 @@ param principalId string = ''
 
 // Generate unique passwords for each VM at deployment time
 // These will be used to create VMs and stored in Key Vault
-var serverVmPassword = uniqueString(resourceGroup().id, 'serverVmPassword', deployment().name)
-var clientVm1Password = uniqueString(resourceGroup().id, 'clientVm1Password', deployment().name)
-var clientVm2Password = uniqueString(resourceGroup().id, 'clientVm2Password', deployment().name)
+var serverVmPassword = '${toUpper(substring(uniqueString(resourceGroup().id, 'serverVmPassword'), 0, 4))}${toLower(substring(uniqueString(resourceGroup().id, 'serverVmPassword'), 4, 4))}${substring(uniqueString(resourceGroup().id, 'serverVmPassword'), 8, 4)}!@'
+var clientVm1Password = '${toUpper(substring(uniqueString(resourceGroup().id, 'clientVm1Password'), 0, 4))}${toLower(substring(uniqueString(resourceGroup().id, 'clientVm1Password'), 4, 4))}${substring(uniqueString(resourceGroup().id, 'clientVm1Password'), 8, 4)}!@'
+var clientVm2Password = '${toUpper(substring(uniqueString(resourceGroup().id, 'clientVm2Password'), 0, 4))}${toLower(substring(uniqueString(resourceGroup().id, 'clientVm2Password'), 4, 4))}${substring(uniqueString(resourceGroup().id, 'clientVm2Password'), 8, 4)}!@'
 
 // Tags that should be applied to all resources
 var tags = {
